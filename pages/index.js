@@ -2,7 +2,7 @@
  * 메인 쇼핑몰 페이지
  * 
  * @description SweeTea 밀크티 쇼핑몰 메인 페이지
- * - 다국어 지원 (한국어, 영어, 일본어)
+ * - 다국어 지원 (한국어, 영어, 일본어, 베트남어)
  * - 카테고리별 상품 필터링
  * - 반응형 디자인
  */
@@ -77,6 +77,21 @@ export default function Home() {
       ade: 'エード',
       products: '商品',
       addToCart: 'カート',
+    },
+    vi: {
+      title: 'SweeTea - Cửa Hàng Trà Sữa Cao Cấp',
+      subtitle: 'Trà sữa ngon và lành mạnh làm từ nguyên liệu cao cấp',
+      shop: 'Mua Sắm',
+      admin: 'Quản Trị',
+      categories: 'Danh Mục',
+      all: 'Tất Cả',
+      milkTea: 'Trà Sữa',
+      fruitTea: 'Trà Trái Cây',
+      coffee: 'Cà Phê',
+      smoothie: 'Sinh Tố',
+      ade: 'Nước Ép',
+      products: 'Sản Phẩm',
+      addToCart: 'Giỏ Hàng',
     }
   }
 
@@ -111,15 +126,30 @@ export default function Home() {
       
       // 카테고리에 따른 URL 생성
       const url = selectedCategory === 'ALL' 
-        ? 'http://localhost:3001/api/products'
-        : `http://localhost:3001/api/products?category=${selectedCategory}`
+        ? '/api/products'
+        : `/api/products?category=${selectedCategory}`
       
+      console.log('Fetching products from:', url)
       const response = await fetch(url)
+      
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`)
+      }
+      
       const data = await response.json()
+      console.log('Received products:', data.length)
+      
+      if (!Array.isArray(data)) {
+        console.error('Invalid data format:', data)
+        throw new Error('Invalid data format received')
+      }
+      
       setProducts(data)
     } catch (error) {
       console.error('Error fetching products:', error)
-      alert('상품을 불러오는데 실패했습니다.')
+      console.error('Error details:', error.message)
+      alert(`상품을 불러오는데 실패했습니다: ${error.message}`)
+      setProducts([])
     } finally {
       setLoading(false)
     }

@@ -6,7 +6,7 @@
  * - 쇼핑몰로 돌아가기 링크
  * 
  * @param {Object} props
- * @param {string} props.currentPage - 현재 활성 페이지 (dashboard, products, orders, codes)
+ * @param {string} props.currentPage - 현재 활성 페이지
  */
 
 import Link from 'next/link'
@@ -14,9 +14,6 @@ import Link from 'next/link'
 export default function AdminHeader({ currentPage }) {
   /**
    * 네비게이션 메뉴 아이템 생성
-   * @param {string} href - 링크 경로
-   * @param {string} label - 메뉴 이름
-   * @param {string} page - 페이지 식별자
    */
   const NavItem = ({ href, label, page }) => {
     const isActive = currentPage === page
@@ -49,6 +46,7 @@ export default function AdminHeader({ currentPage }) {
             <NavItem href="/admin" label="대시보드" page="dashboard" />
             <NavItem href="/admin/products" label="상품관리" page="products" />
             <NavItem href="/admin/orders" label="주문관리" page="orders" />
+            <NavItem href="/admin/ingredients" label="재료관리" page="ingredients" />
             <NavItem href="/admin/codes" label="공통코드" page="codes" />
             
             {/* 쇼핑몰로 돌아가기 */}

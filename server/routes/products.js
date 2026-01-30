@@ -1,5 +1,5 @@
 /**
- * 상품(Product) API 라우트
+ * 상품(Product) API 라우트 - 파일 기반
  * 
  * @description 상품 관리를 위한 RESTful API 엔드포인트
  * - GET /api/products - 상품 목록 조회
@@ -11,8 +11,7 @@
 
 const express = require('express');
 const router = express.Router();
-const { pool } = require('../index');
-const productQueries = require('../queries/productQueries');
+const { products } = require('../fileStore');
 
 /**
  * GET /api/products
@@ -24,30 +23,35 @@ const productQueries = require('../queries/productQueries');
  */
 router.get('/', async (req, res) => {
   try {
+    console.log('GET /api/products - Request received');
     const { category, search } = req.query;
-    let query = productQueries.getAllProducts;
-    const params = [];
+    let result;
 
     // 카테고리 필터 적용
     if (category) {
-      query = productQueries.getProductsByCategory;
-      params.push(category);
+      console.log(`Filtering by category: ${category}`);
+      result = await products.getByCategory(category);
     }
     // 검색어 필터 적용
     else if (search) {
-      query = productQueries.searchProducts;
-      params.push(`%${search}%`, `%${search}%`);
+      console.log(`Searching for: ${search}`);
+      result = await products.search(search);
     }
-    // 기본 정렬 추가
+    // 전체 조회
     else {
-      query += ' ORDER BY created_at DESC';
+      console.log('Getting all products');
+      result = await products.getAll();
     }
 
-    const [rows] = await pool.query(query, params);
-    res.json(rows);
+    // 최신순 정렬
+    result.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+
+    console.log(`Returning ${result.length} products`);
+    res.json(result);
   } catch (error) {
     console.error('Error fetching products:', error);
-    res.status(500).json({ error: error.message });
+    console.error('Stack trace:', error.stack);
+    res.status(500).json({ error: error.message, details: error.stack });
   }
 });
 
@@ -60,13 +64,13 @@ router.get('/', async (req, res) => {
  */
 router.get('/:id', async (req, res) => {
   try {
-    const [rows] = await pool.query(productQueries.getProductById, [req.params.id]);
+    const product = await products.getById(req.params.id);
     
-    if (rows.length === 0) {
+    if (!product) {
       return res.status(404).json({ error: 'Product not found' });
     }
     
-    res.json(rows[0]);
+    res.json(product);
   } catch (error) {
     console.error('Error fetching product:', error);
     res.status(500).json({ error: error.message });
@@ -80,9 +84,11 @@ router.get('/:id', async (req, res) => {
  * @body {string} name - 상품명 (한국어)
  * @body {string} name_en - 상품명 (영어)
  * @body {string} name_ja - 상품명 (일본어)
+ * @body {string} name_vi - 상품명 (베트남어)
  * @body {string} description - 설명 (한국어)
  * @body {string} description_en - 설명 (영어)
  * @body {string} description_ja - 설명 (일본어)
+ * @body {string} description_vi - 설명 (베트남어)
  * @body {number} price - 가격
  * @body {string} category - 카테고리
  * @body {string} image_url - 이미지 URL
@@ -92,8 +98,8 @@ router.get('/:id', async (req, res) => {
 router.post('/', async (req, res) => {
   try {
     const { 
-      name, name_en, name_ja, 
-      description, description_en, description_ja, 
+      name, name_en, name_ja, name_vi,
+      description, description_en, description_ja, description_vi,
       price, category, image_url, stock 
     } = req.body;
 
@@ -102,14 +108,19 @@ router.post('/', async (req, res) => {
       return res.status(400).json({ error: 'Missing required fields' });
     }
 
-    const [result] = await pool.query(
-      productQueries.createProduct,
-      [name, name_en, name_ja, description, description_en, description_ja, price, category, image_url, stock]
-    );
+    const newProduct = await products.create({
+      name, name_en, name_ja, name_vi,
+      description, description_en, description_ja, description_vi,
+      price: parseFloat(price),
+      category,
+      image_url: image_url || '',
+      stock: parseInt(stock)
+    });
 
     res.status(201).json({ 
-      id: result.insertId, 
-      message: 'Product created successfully' 
+      id: newProduct.id, 
+      message: 'Product created successfully',
+      product: newProduct
     });
   } catch (error) {
     console.error('Error creating product:', error);
@@ -128,8 +139,8 @@ router.post('/', async (req, res) => {
 router.put('/:id', async (req, res) => {
   try {
     const { 
-      name, name_en, name_ja, 
-      description, description_en, description_ja, 
+      name, name_en, name_ja, name_vi,
+      description, description_en, description_ja, description_vi,
       price, category, image_url, stock 
     } = req.body;
 
@@ -138,14 +149,24 @@ router.put('/:id', async (req, res) => {
       return res.status(400).json({ error: 'Missing required fields' });
     }
 
-    await pool.query(
-      productQueries.updateProduct,
-      [name, name_en, name_ja, description, description_en, description_ja, price, category, image_url, stock, req.params.id]
-    );
+    const updatedProduct = await products.update(req.params.id, {
+      name, name_en, name_ja, name_vi,
+      description, description_en, description_ja, description_vi,
+      price: parseFloat(price),
+      category,
+      image_url: image_url || '',
+      stock: parseInt(stock)
+    });
 
-    res.json({ message: 'Product updated successfully' });
+    res.json({ 
+      message: 'Product updated successfully',
+      product: updatedProduct
+    });
   } catch (error) {
     console.error('Error updating product:', error);
+    if (error.message === 'Product not found') {
+      return res.status(404).json({ error: error.message });
+    }
     res.status(500).json({ error: error.message });
   }
 });
@@ -159,10 +180,13 @@ router.put('/:id', async (req, res) => {
  */
 router.delete('/:id', async (req, res) => {
   try {
-    await pool.query(productQueries.deleteProduct, [req.params.id]);
+    await products.delete(req.params.id);
     res.json({ message: 'Product deleted successfully' });
   } catch (error) {
     console.error('Error deleting product:', error);
+    if (error.message === 'Product not found') {
+      return res.status(404).json({ error: error.message });
+    }
     res.status(500).json({ error: error.message });
   }
 });

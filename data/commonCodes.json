@@ -1,0 +1,123 @@
+[
+  {
+    "id": 1,
+    "group_code": "CATEGORY",
+    "code": "MILK_TEA",
+    "name": "밀크티",
+    "name_en": "Milk Tea",
+    "name_ja": "ミルクティー",
+    "name_vi": "Trà Sữa",
+    "sort_order": 1,
+    "created_at": "2025-01-01T00:00:00.000Z"
+  },
+  {
+    "id": 2,
+    "group_code": "CATEGORY",
+    "code": "FRUIT_TEA",
+    "name": "과일티",
+    "name_en": "Fruit Tea",
+    "name_ja": "フルーツティー",
+    "name_vi": "Trà Trái Cây",
+    "sort_order": 2,
+    "created_at": "2025-01-01T00:00:00.000Z"
+  },
+  {
+    "id": 3,
+    "group_code": "CATEGORY",
+    "code": "COFFEE",
+    "name": "커피",
+    "name_en": "Coffee",
+    "name_ja": "コーヒー",
+    "name_vi": "Cà Phê",
+    "sort_order": 3,
+    "created_at": "2025-01-01T00:00:00.000Z"
+  },
+  {
+    "id": 4,
+    "group_code": "CATEGORY",
+    "code": "SMOOTHIE",
+    "name": "스무디",
+    "name_en": "Smoothie",
+    "name_ja": "スムージー",
+    "name_vi": "Sinh Tố",
+    "sort_order": 4,
+    "created_at": "2025-01-01T00:00:00.000Z"
+  },
+  {
+    "id": 5,
+    "group_code": "CATEGORY",
+    "code": "ADE",
+    "name": "에이드",
+    "name_en": "Ade",
+    "name_ja": "エード",
+    "name_vi": "Nước Ép",
+    "sort_order": 5,
+    "created_at": "2025-01-01T00:00:00.000Z"
+  },
+  {
+    "id": 6,
+    "group_code": "ORDER_STATUS",
+    "code": "PENDING",
+    "name": "대기중",
+    "name_en": "Pending",
+    "name_ja": "待機中",
+    "name_vi": "Đang Chờ",
+    "sort_order": 1,
+    "created_at": "2025-01-01T00:00:00.000Z"
+  },
+  {
+    "id": 7,
+    "group_code": "ORDER_STATUS",
+    "code": "CONFIRMED",
+    "name": "확인됨",
+    "name_en": "Confirmed",
+    "name_ja": "確認済み",
+    "name_vi": "Đã Xác Nhận",
+    "sort_order": 2,
+    "created_at": "2025-01-01T00:00:00.000Z"
+  },
+  {
+    "id": 8,
+    "group_code": "ORDER_STATUS",
+    "code": "PREPARING",
+    "name": "준비중",
+    "name_en": "Preparing",
+    "name_ja": "準備中",
+    "name_vi": "Đang Chuẩn Bị",
+    "sort_order": 3,
+    "created_at": "2025-01-01T00:00:00.000Z"
+  },
+  {
+    "id": 9,
+    "group_code": "ORDER_STATUS",
+    "code": "SHIPPING",
+    "name": "배송중",
+    "name_en": "Shipping",
+    "name_ja": "配送中",
+    "name_vi": "Đang Giao",
+    "sort_order": 4,
+    "created_at": "2025-01-01T00:00:00.000Z"
+  },
+  {
+    "id": 10,
+    "group_code": "ORDER_STATUS",
+    "code": "COMPLETED",
+    "name": "완료",
+    "name_en": "Completed",
+    "name_ja": "完了",
+    "name_vi": "Hoàn Thành",
+    "sort_order": 5,
+    "created_at": "2025-01-01T00:00:00.000Z"
+  },
+  {
+    "id": 11,
+    "group_code": "ORDER_STATUS",
+    "code": "CANCELLED",
+    "name": "취소됨",
+    "name_en": "Cancelled",
+    "name_ja": "キャンセル済み",
+    "name_vi": "Đã Hủy",
+    "sort_order": 6,
+    "created_at": "2025-01-01T00:00:00.000Z"
+  }
+]

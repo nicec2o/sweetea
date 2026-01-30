@@ -7,7 +7,7 @@
  * - 관리자 페이지 링크
  * 
  * @param {Object} props
- * @param {string} props.locale - 현재 선택된 언어 (ko, en, ja)
+ * @param {string} props.locale - 현재 선택된 언어 (ko, en, ja, vi)
  * @param {Function} props.onLocaleChange - 언어 변경 핸들러
  * @param {Object} props.text - 번역 텍스트 객체
  */
@@ -35,6 +35,7 @@ export default function Header({ locale, onLocaleChange, text }) {
               <option value="ko">한국어 🇰🇷</option>
               <option value="en">English 🇺🇸</option>
               <option value="ja">日本語 🇯🇵</option>
+              <option value="vi">Tiếng Việt 🇻🇳</option>
             </select>
             
             {/* 관리자 페이지 링크 */}

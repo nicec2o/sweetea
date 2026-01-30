@@ -1,7 +1,12 @@
+/**
+ * Express 서버 - 파일 기반 저장소 사용
+ * 
+ * @description MySQL 대신 JSON 파일로 데이터를 관리하는 Express 서버
+ */
+
 const express = require('express');
 const cors = require('cors');
-const mysql = require('mysql2/promise');
-require('dotenv').config();
+const path = require('path');
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -9,17 +14,6 @@ const PORT = process.env.PORT || 3001;
 // Middleware
 app.use(cors());
 app.use(express.json());
-
-// MySQL 연결 풀
-const pool = mysql.createPool({
-  host: process.env.DB_HOST || 'localhost',
-  user: process.env.DB_USER || 'root',
-  password: process.env.DB_PASSWORD || '',
-  database: process.env.DB_NAME || 'sweetea',
-  waitForConnections: true,
-  connectionLimit: 10,
-  queueLimit: 0
-});
 
 // 라우트
 const productRoutes = require('./routes/products');
@@ -36,21 +30,41 @@ app.use('/api/admin', adminRoutes);
 
 // 헬스체크
 app.get('/api/health', (req, res) => {
-  res.json({ status: 'ok', timestamp: new Date() });
+  res.json({ 
+    status: 'ok', 
+    timestamp: new Date(),
+    storage: 'file-based'
+  });
 });
 
-// 데이터베이스 연결 테스트
-app.get('/api/db-test', async (req, res) => {
+// 데이터 디렉토리 확인
+app.get('/api/storage-test', async (req, res) => {
   try {
-    const [rows] = await pool.query('SELECT 1 as test');
-    res.json({ status: 'connected', data: rows });
+    const { products } = require('./fileStore');
+    const allProducts = await products.getAll();
+    res.json({ 
+      status: 'connected', 
+      storage: 'file-based',
+      productsCount: allProducts.length
+    });
   } catch (error) {
     res.status(500).json({ status: 'error', message: error.message });
   }
 });
 
-app.listen(PORT, () => {
+app.listen(PORT, async () => {
   console.log(`Server running on port ${PORT}`);
+  console.log(`Storage: File-based (JSON)`);
+  console.log(`Data directory: ${path.join(__dirname, 'data')}`);
+  
+  // 시작 시 데이터 파일 확인
+  try {
+    const { products } = require('./fileStore');
+    const allProducts = await products.getAll();
+    console.log(`\u2705 Loaded ${allProducts.length} products successfully`);
+  } catch (error) {
+    console.error('\u274c Error loading products:', error.message);
+  }
 });
 
-module.exports = { pool };
+module.exports = app;
