@@ -4,17 +4,15 @@
     "name": "클래식 밀크티",
     "name_en": "Classic Milk Tea",
     "name_ja": "クラシックミルクティー",
-    "name_vi": "Trà Sữa Cổ Điển",
     "description": "진한 홍차와 부드러운 우유의 완벽한 조화",
     "description_en": "Perfect harmony of rich black tea and smooth milk",
     "description_ja": "濃厚な紅茶と滑らかなミルクの完璧な調和",
-    "description_vi": "Sự kết hợp hoàn hảo giữa trà đen đậm đà và sữa mịn màng",
-    "price": 4500,
+    "price": 4000,
     "category": "MILK_TEA",
     "image_url": "https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=400",
     "stock": 100,
     "created_at": "2025-01-10T10:00:00.000Z",
-    "updated_at": "2025-01-10T10:00:00.000Z"
+    "updated_at": "2026-01-31T06:11:00.107Z"
   },
   {
     "id": 2,
@@ -46,9 +44,9 @@
     "price": 5500,
     "category": "MILK_TEA",
     "image_url": "https://images.unsplash.com/photo-1515823064-d6e0c04616a7?w=400",
-    "stock": 90,
+    "stock": 89,
     "created_at": "2025-01-10T11:00:00.000Z",
-    "updated_at": "2025-01-10T11:00:00.000Z"
+    "updated_at": "2026-01-31T06:10:20.232Z"
   },
   {
     "id": 4,

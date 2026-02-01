@@ -1,7 +1,8 @@
 import { useState, useEffect, useRef, useMemo } from 'react'
 import Head from 'next/head'
-import Link from 'next/link'
+import AdminHeader from '../../components/common/AdminHeader'
 import { AgGridReact } from 'ag-grid-react'
+import { ActionButtons } from '../../components/admin/GridActionButtons'
 
 export default function AdminProducts() {
   const gridRef = useRef()
@@ -28,7 +29,7 @@ export default function AdminProducts() {
 
   const fetchProducts = async () => {
     try {
-      const response = await fetch('http://localhost:3001/api/products')
+      const response = await fetch('/api/products')
       const data = await response.json()
       setProducts(data)
     } catch (error) {
@@ -42,8 +43,8 @@ export default function AdminProducts() {
     e.preventDefault()
     try {
       const url = editingProduct
-        ? `http://localhost:3001/api/products/${editingProduct.id}`
-        : 'http://localhost:3001/api/products'
+        ? `/api/products/${editingProduct.id}`
+        : '/api/products'
       
       const method = editingProduct ? 'PUT' : 'POST'
       
@@ -95,10 +96,8 @@ export default function AdminProducts() {
   }
 
   const handleDelete = async (id) => {
-    if (!confirm('정말 삭제하시겠습니까?')) return
-
     try {
-      const response = await fetch(`http://localhost:3001/api/products/${id}`, {
+      const response = await fetch(`/api/products/${id}`, {
         method: 'DELETE'
       })
 
@@ -128,23 +127,10 @@ export default function AdminProducts() {
       field: 'actions',
       headerName: '관리',
       width: 200,
-      cellRenderer: (params) => {
-        return (
-          <div className="flex gap-2 items-center h-full">
-            <button
-              onClick={() => handleEdit(params.data)}
-              className="px-3 py-1 bg-blue-500 text-white rounded hover:bg-blue-600 text-sm"
-            >
-              수정
-            </button>
-            <button
-              onClick={() => handleDelete(params.data.id)}
-              className="px-3 py-1 bg-red-500 text-white rounded hover:bg-red-600 text-sm"
-            >
-              삭제
-            </button>
-          </div>
-        )
+      cellRenderer: ActionButtons,
+      cellRendererParams: {
+        onEdit: handleEdit,
+        onDelete: handleDelete
       }
     }
   ], [])
@@ -160,30 +146,7 @@ export default function AdminProducts() {
       </Head>
 
       <div className="min-h-screen bg-gray-100">
-        <header className="bg-white shadow">
-          <div className="container mx-auto px-4 py-4">
-            <div className="flex justify-between items-center">
-              <h1 className="text-2xl font-bold text-gray-800">상품관리</h1>
-              <div className="flex gap-4">
-                <Link href="/admin" className="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300">
-                  대시보드
-                </Link>
-                <Link href="/admin/products" className="px-4 py-2 bg-primary-500 text-white rounded-lg hover:bg-primary-600">
-                  상품관리
-                </Link>
-                <Link href="/admin/orders" className="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300">
-                  주문관리
-                </Link>
-                <Link href="/admin/codes" className="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300">
-                  공통코드
-                </Link>
-                <Link href="/" className="px-4 py-2 bg-gray-800 text-white rounded-lg hover:bg-gray-700">
-                  쇼핑몰
-                </Link>
-              </div>
-            </div>
-          </div>
-        </header>
+        <AdminHeader currentPage="products" />
 
         <main className="container mx-auto px-4 py-8">
           <div className="bg-white rounded-lg shadow-md p-6">

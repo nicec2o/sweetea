@@ -1,30 +1,40 @@
 /**
- * 주문관리 페이지 (주문 직접 입력 기능 포함)
+ * 주문관리 페이지 (주문 직접 입력 기능 포함 + OCR)
  */
 
 import { useState, useEffect, useRef } from 'react'
 import Head from 'next/head'
 import { AgGridReact } from 'ag-grid-react'
+import Tesseract from 'tesseract.js'
 
 import AdminHeader from '../../components/common/AdminHeader'
 import LoadingSpinner from '../../components/common/LoadingSpinner'
-import OrderStatusBadge from '../../components/admin/OrderStatusBadge'
+import { StatusSelect } from '../../components/admin/GridActionButtons'
 
 export default function AdminOrders() {
   const gridRef = useRef()
+  const fileInputRef = useRef()
   
   const [orders, setOrders] = useState([])
   const [products, setProducts] = useState([])
   const [users, setUsers] = useState([])
   const [loading, setLoading] = useState(true)
   const [showModal, setShowModal] = useState(false)
+  const [ocrProcessing, setOcrProcessing] = useState(false)
+  const [ocrText, setOcrText] = useState('')
+  
+  // 고객 정보 상태
+  const [customerName, setCustomerName] = useState('')
+  const [customerInfo, setCustomerInfo] = useState(null)
+  const [isNewCustomer, setIsNewCustomer] = useState(true)
   
   // 주문 입력 폼 상태
   const [formData, setFormData] = useState({
-    user_id: '',
+    customer_name: '',
     shipping_address: '',
+    shipping_address_detail: '',
     phone: '',
-    payment_method: 'CARD',
+    payment_method: 'TRANSFER',
     items: []
   })
 
@@ -63,6 +73,103 @@ export default function AdminOrders() {
   }
 
   /**
+   * 고객명 입력 시 기존 고객 검색
+   */
+  const handleCustomerNameBlur = () => {
+    const trimmedName = customerName.trim()
+    if (!trimmedName) return
+
+    const existingUser = users.find(u => u.name === trimmedName)
+    
+    if (existingUser) {
+      setCustomerInfo(existingUser)
+      setIsNewCustomer(false)
+      setFormData({
+        ...formData,
+        customer_name: existingUser.name,
+        phone: existingUser.phone || '',
+        shipping_address: existingUser.address || '',
+        shipping_address_detail: ''
+      })
+    } else {
+      setCustomerInfo(null)
+      setIsNewCustomer(true)
+      setFormData({
+        ...formData,
+        customer_name: trimmedName,
+        phone: '',
+        shipping_address: '',
+        shipping_address_detail: ''
+      })
+    }
+  }
+
+  /**
+   * OCR로 이미지에서 텍스트 추출
+   */
+  const handleImageUpload = async (e) => {
+    const file = e.target.files[0]
+    if (!file) return
+
+    try {
+      setOcrProcessing(true)
+      
+      const { data: { text } } = await Tesseract.recognize(
+        file,
+        'kor+eng',
+        {
+          logger: m => console.log(m)
+        }
+      )
+
+      setOcrText(text)
+
+      // OCR 결과 파싱
+      const lines = text.split('\n').map(line => line.trim()).filter(Boolean)
+      
+      let extractedName = ''
+      let extractedPhone = ''
+      let extractedAddress = ''
+
+      lines.forEach(line => {
+        // 전화번호 패턴
+        const phoneMatch = line.match(/01[0-9]-?[0-9]{3,4}-?[0-9]{4}/)
+        if (phoneMatch) {
+          extractedPhone = phoneMatch[0].replace(/-/g, '')
+        }
+
+        // 이름 추출
+        if (!extractedName && /^[가-힣]{2,4}$/.test(line)) {
+          extractedName = line
+        }
+
+        // 주소 추출
+        if (line.includes('시') || line.includes('구') || line.includes('동')) {
+          extractedAddress += line + ' '
+        }
+      })
+
+      // 추출된 정보를 폼에 입력
+      if (extractedName) {
+        setCustomerName(extractedName)
+        setFormData(prev => ({ ...prev, customer_name: extractedName }))
+      }
+      if (extractedPhone) {
+        setFormData(prev => ({ ...prev, phone: extractedPhone }))
+      }
+      if (extractedAddress) {
+        setFormData(prev => ({ ...prev, shipping_address: extractedAddress.trim() }))
+      }
+      
+    } catch (error) {
+      console.error('OCR Error:', error)
+      alert('이미지 인식에 실패했습니다.')
+    } finally {
+      setOcrProcessing(false)
+    }
+  }
+
+  /**
    * 주문 상태 변경
    */
   const handleStatusChange = async (orderId, newStatus) => {
@@ -87,8 +194,6 @@ export default function AdminOrders() {
    * 주문 삭제
    */
   const handleDelete = async (orderId) => {
-    if (!confirm('정말 삭제하시겠습니까?')) return
-
     try {
       const response = await fetch(`/api/orders/${orderId}`, {
         method: 'DELETE'
@@ -110,7 +215,6 @@ export default function AdminOrders() {
   const columnDefs = [
     { field: 'id', headerName: '주문번호', width: 100 },
     { field: 'user_name', headerName: '고객명', width: 120 },
-    { field: 'email', headerName: '이메일', width: 200 },
     { 
       field: 'total_amount', 
       headerName: '주문금액', 
@@ -121,28 +225,9 @@ export default function AdminOrders() {
       field: 'status',
       headerName: '주문상태',
       width: 150,
-      cellRenderer: params => {
-        const statusOptions = [
-          { value: 'PENDING', label: '대기중' },
-          { value: 'CONFIRMED', label: '확인됨' },
-          { value: 'PREPARING', label: '준비중' },
-          { value: 'SHIPPING', label: '배송중' },
-          { value: 'COMPLETED', label: '완료' },
-          { value: 'CANCELLED', label: '취소됨' }
-        ]
-
-        return `
-          <select 
-            class="status-select px-2 py-1 border rounded"
-            data-id="${params.data.id}"
-          >
-            ${statusOptions.map(opt => 
-              `<option value="${opt.value}" ${params.value === opt.value ? 'selected' : ''}>
-                ${opt.label}
-              </option>`
-            ).join('')}
-          </select>
-        `
+      cellRenderer: StatusSelect,
+      cellRendererParams: {
+        onStatusChange: handleStatusChange
       }
     },
     { field: 'phone', headerName: '연락처', width: 130 },
@@ -155,52 +240,41 @@ export default function AdminOrders() {
     {
       headerName: '작업',
       width: 100,
-      cellRenderer: params => {
-        return `
-          <button 
-            class="delete-btn px-3 py-1 bg-red-500 text-white rounded hover:bg-red-600"
-            data-id="${params.data.id}"
-          >
-            삭제
-          </button>
-        `
-      }
+      cellRenderer: (params) => (
+        <button 
+          onClick={() => handleDelete(params.data.id)}
+          className="px-3 py-1 bg-red-500 text-white rounded hover:bg-red-600 text-sm"
+        >
+          삭제
+        </button>
+      )
     }
   ]
-
-  /**
-   * 그리드 클릭 이벤트 핸들러
-   */
-  const onCellClicked = (event) => {
-    const target = event.event.target
-    
-    if (target.classList.contains('status-select')) {
-      target.addEventListener('change', (e) => {
-        const orderId = parseInt(e.target.dataset.id)
-        const newStatus = e.target.value
-        handleStatusChange(orderId, newStatus)
-      })
-    } else if (target.classList.contains('delete-btn')) {
-      const id = parseInt(target.dataset.id)
-      handleDelete(id)
-    }
-  }
 
   /**
    * 새 주문 추가 모달 열기
    */
   const handleAddNew = () => {
+    setCustomerName('')
+    setCustomerInfo(null)
+    setIsNewCustomer(true)
+    setOcrText('')
     setFormData({
-      user_id: '',
+      customer_name: '',
       shipping_address: '',
+      shipping_address_detail: '',
       phone: '',
-      payment_method: 'CARD',
+      payment_method: 'TRANSFER',
       items: []
     })
+    
+    // 밀크티 기본 선택
+    const milkTea = products.find(p => p.category === 'MILK_TEA')
     setTempItem({
-      product_id: '',
+      product_id: milkTea?.id || '',
       quantity: 1
     })
+    
     setShowModal(true)
   }
 
@@ -255,8 +329,13 @@ export default function AdminOrders() {
   const handleSubmit = async (e) => {
     e.preventDefault()
 
-    if (!formData.user_id) {
-      alert('고객을 선택해주세요.')
+    if (!formData.customer_name) {
+      alert('고객명을 입력해주세요.')
+      return
+    }
+
+    if (!formData.phone) {
+      alert('전화번호를 입력해주세요.')
       return
     }
 
@@ -266,11 +345,42 @@ export default function AdminOrders() {
     }
 
     try {
+      let userId = customerInfo?.id
+
+      // 신규 고객이면 먼저 고객 생성
+      if (isNewCustomer) {
+        const fullAddress = formData.shipping_address_detail 
+          ? `${formData.shipping_address} ${formData.shipping_address_detail}`
+          : formData.shipping_address
+
+        const userResponse = await fetch('/api/users', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            name: formData.customer_name,
+            email: `${formData.phone}@temp.com`,
+            phone: formData.phone,
+            address: fullAddress,
+            password: 'temp123'
+          })
+        })
+
+        if (!userResponse.ok) throw new Error('User creation failed')
+        
+        const newUser = await userResponse.json()
+        userId = newUser.user?.id || newUser.id
+      }
+
+      // 주문 생성
+      const fullAddress = formData.shipping_address_detail 
+        ? `${formData.shipping_address} ${formData.shipping_address_detail}`
+        : formData.shipping_address
+
       const orderData = {
-        user_id: parseInt(formData.user_id),
+        user_id: userId,
         items: formData.items,
         total_amount: calculateTotal(),
-        shipping_address: formData.shipping_address,
+        shipping_address: fullAddress,
         phone: formData.phone,
         payment_method: formData.payment_method
       }
@@ -302,7 +412,7 @@ export default function AdminOrders() {
       </Head>
 
       <div className="min-h-screen bg-gray-100">
-        <AdminHeader />
+        <AdminHeader currentPage="orders" />
 
         <main className="container mx-auto px-4 py-8">
           {/* 헤더 */}
@@ -356,7 +466,6 @@ export default function AdminOrders() {
                   filter: true,
                   resizable: true
                 }}
-                onCellClicked={onCellClicked}
                 pagination={true}
                 paginationPageSize={20}
               />
@@ -371,47 +480,120 @@ export default function AdminOrders() {
               <h2 className="text-2xl font-bold mb-6">주문 직접 입력</h2>
 
               <form onSubmit={handleSubmit}>
-                {/* 고객 선택 */}
-                <div className="mb-6">
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    고객 선택 *
-                  </label>
-                  <select
-                    required
-                    value={formData.user_id}
-                    onChange={e => setFormData({...formData, user_id: e.target.value})}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-                  >
-                    <option value="">고객을 선택하세요</option>
-                    {users.map(user => (
-                      <option key={user.id} value={user.id}>
-                        {user.name} ({user.email})
-                      </option>
-                    ))}
-                  </select>
+                {/* OCR 이미지 업로드 */}
+                <div className="mb-6 p-4 bg-blue-50 rounded-lg border-2 border-dashed border-blue-300">
+                  <div className="flex items-center justify-between mb-3">
+                    <div>
+                      <h3 className="font-semibold text-blue-800">📸 고객 정보 이미지 인식 (OCR)</h3>
+                      <p className="text-sm text-blue-600">명함, 메모, 스크린샷에서 고객 정보를 자동으로 추출합니다</p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => fileInputRef.current?.click()}
+                      disabled={ocrProcessing}
+                      className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 disabled:opacity-50"
+                    >
+                      {ocrProcessing ? '처리중...' : '이미지 선택'}
+                    </button>
+                  </div>
+                  
+                  {/* OCR 결과 텍스트 편집 가능 */}
+                  {ocrText && (
+                    <div className="mt-4">
+                      <label className="block text-sm font-semibold text-blue-800 mb-2">
+                        추출된 텍스트 (수정 가능):
+                      </label>
+                      <textarea
+                        value={ocrText}
+                        onChange={(e) => setOcrText(e.target.value)}
+                        className="w-full p-3 border border-blue-200 rounded-lg focus:ring-2 focus:ring-blue-500 text-sm"
+                        rows="6"
+                        placeholder="추출된 텍스트가 여기에 표시됩니다. 수정할 수 있습니다."
+                      />
+                    </div>
+                  )}
+                  
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept="image/*"
+                    onChange={handleImageUpload}
+                    className="hidden"
+                  />
                 </div>
 
-                {/* 배송 정보 */}
-                <div className="grid grid-cols-2 gap-4 mb-6">
-                  <div>
+                {/* 고객 정보 */}
+                <div className="mb-6 p-4 bg-gray-50 rounded-lg">
+                  <h3 className="font-semibold mb-4">고객 정보</h3>
+                  
+                  {/* 고객명 입력 */}
+                  <div className="mb-4">
                     <label className="block text-sm font-medium text-gray-700 mb-2">
-                      배송 주소
+                      고객명 *
+                    </label>
+                    <input
+                      type="text"
+                      required
+                      value={customerName}
+                      onChange={e => setCustomerName(e.target.value)}
+                      onBlur={handleCustomerNameBlur}
+                      placeholder="고객 이름을 입력하세요"
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                    />
+                  </div>
+
+                  {/* 기존 고객 정보 표시 */}
+                  {customerInfo && (
+                    <div className="mb-4 p-3 bg-green-50 border border-green-300 rounded">
+                      <p className="text-sm font-semibold text-green-800">✅ 기존 고객 정보</p>
+                      <p className="text-sm text-gray-700">전화번호: {customerInfo.phone || '없음'}</p>
+                      <p className="text-sm text-gray-700">주소: {customerInfo.address || '없음'}</p>
+                    </div>
+                  )}
+
+                  {isNewCustomer && customerName && (
+                    <div className="mb-4 p-3 bg-yellow-50 border border-yellow-300 rounded">
+                      <p className="text-sm font-semibold text-yellow-800">🆕 신규 고객</p>
+                      <p className="text-sm text-gray-700">주문 완료 시 자동으로 고객 정보가 생성됩니다</p>
+                    </div>
+                  )}
+
+                  <div className="mb-4">
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      전화번호 *
+                    </label>
+                    <input
+                      type="tel"
+                      required
+                      value={formData.phone}
+                      onChange={e => setFormData({...formData, phone: e.target.value})}
+                      placeholder="010-XXXX-XXXX"
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                    />
+                  </div>
+
+                  <div className="mb-4">
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      주소
                     </label>
                     <input
                       type="text"
                       value={formData.shipping_address}
                       onChange={e => setFormData({...formData, shipping_address: e.target.value})}
+                      placeholder="시, 구, 동"
                       className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
                     />
                   </div>
+
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">
-                      연락처
+                      상세주소
                     </label>
                     <input
-                      type="tel"
-                      value={formData.phone}
-                      onChange={e => setFormData({...formData, phone: e.target.value})}
+                      type="text"
+                      value={formData.shipping_address_detail}
+                      onChange={e => setFormData({...formData, shipping_address_detail: e.target.value})}
+                      placeholder="건물명, 동/호수"
                       className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
                     />
                   </div>
@@ -427,9 +609,9 @@ export default function AdminOrders() {
                     onChange={e => setFormData({...formData, payment_method: e.target.value})}
                     className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
                   >
+                    <option value="TRANSFER">계좌이체</option>
                     <option value="CARD">카드</option>
                     <option value="CASH">현금</option>
-                    <option value="TRANSFER">계좌이체</option>
                   </select>
                 </div>
 
@@ -445,7 +627,7 @@ export default function AdminOrders() {
                       <option value="">상품을 선택하세요</option>
                       {products.map(product => (
                         <option key={product.id} value={product.id}>
-                          {product.name} - ₩{product.price.toLocaleString()}
+                          {product.name} ({product.category}) - ₩{product.price.toLocaleString()}
                         </option>
                       ))}
                     </select>

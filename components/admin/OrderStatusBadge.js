@@ -9,6 +9,8 @@
  */
 
 export default function OrderStatusBadge({ status }) {
+  const statusKey = status?.toLowerCase() || 'pending';
+  
   /**
    * 상태별 배지 스타일 매핑
    */
@@ -34,8 +36,8 @@ export default function OrderStatusBadge({ status }) {
   }
 
   return (
-    <span className={`inline-block px-3 py-1 rounded-full text-xs font-semibold ${badgeStyles[status] || badgeStyles.pending}`}>
-      {statusTexts[status] || status}
+    <span className={`inline-block px-3 py-1 rounded-full text-xs font-semibold ${badgeStyles[statusKey]}`}>
+      {statusTexts[statusKey]}
     </span>
   )
 }
