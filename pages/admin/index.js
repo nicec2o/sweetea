@@ -3,7 +3,7 @@
  * 
  * @description 쇼핑몰 운영 현황을 한눈에 볼 수 있는 대시보드
  * - 통계 카드 (상품/주문/회원/매출)
- * - 최근 주문 목록
+ * - 최근 주문 목록 (DataTable 사용)
  * - 주문 상태별 배지
  */
 
@@ -15,6 +15,7 @@ import AdminHeader from '../../components/common/AdminHeader'
 import LoadingSpinner from '../../components/common/LoadingSpinner'
 import StatCard from '../../components/admin/StatCard'
 import OrderStatusBadge from '../../components/admin/OrderStatusBadge'
+import DataTable from '../../components/grid/DataTable'
 
 export default function AdminDashboard() {
   // 상태 관리
@@ -43,6 +44,47 @@ export default function AdminDashboard() {
       setLoading(false)
     }
   }
+
+  /**
+   * DataTable 컬럼 정의
+   */
+  const orderColumns = [
+    {
+      key: 'id',
+      header: '주문번호',
+      render: (value) => <span className="font-medium text-gray-900">#{value}</span>
+    },
+    {
+      key: 'user_name',
+      header: '고객명',
+      className: 'text-gray-700'
+    },
+    {
+      key: 'email',
+      header: '이메일',
+      className: 'text-gray-600'
+    },
+    {
+      key: 'total_amount',
+      header: '금액',
+      headerClassName: 'text-right',
+      className: 'text-right font-semibold text-gray-900',
+      render: (value) => `₩${value.toLocaleString()}`
+    },
+    {
+      key: 'status',
+      header: '상태',
+      headerClassName: 'text-center',
+      className: 'text-center',
+      render: (value) => <OrderStatusBadge status={value} />
+    },
+    {
+      key: 'created_at',
+      header: '주문일시',
+      className: 'text-gray-600',
+      render: (value) => new Date(value).toLocaleString('ko-KR')
+    }
+  ]
 
   return (
     <>
@@ -95,72 +137,17 @@ export default function AdminDashboard() {
                 />
               </div>
 
-              {/* 최근 주문 목록 */}
+              {/* 최근 주문 목록 - DataTable 사용 */}
               <div className="bg-white rounded-lg shadow-md p-6">
                 <h2 className="text-xl font-bold text-gray-800 mb-4">
                   최근 주문
                 </h2>
                 
-                <div className="overflow-x-auto">
-                  <table className="w-full">
-                    <thead>
-                      <tr className="border-b bg-gray-50">
-                        <th className="text-left py-3 px-4 font-semibold text-gray-700">
-                          주문번호
-                        </th>
-                        <th className="text-left py-3 px-4 font-semibold text-gray-700">
-                          고객명
-                        </th>
-                        <th className="text-left py-3 px-4 font-semibold text-gray-700">
-                          이메일
-                        </th>
-                        <th className="text-right py-3 px-4 font-semibold text-gray-700">
-                          금액
-                        </th>
-                        <th className="text-center py-3 px-4 font-semibold text-gray-700">
-                          상태
-                        </th>
-                        <th className="text-left py-3 px-4 font-semibold text-gray-700">
-                          주문일시
-                        </th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {stats.recentOrders.map((order) => (
-                        <tr 
-                          key={order.id} 
-                          className="border-b hover:bg-gray-50 transition"
-                        >
-                          <td className="py-3 px-4 font-medium text-gray-900">
-                            #{order.id}
-                          </td>
-                          <td className="py-3 px-4 text-gray-700">
-                            {order.user_name}
-                          </td>
-                          <td className="py-3 px-4 text-gray-600">
-                            {order.email}
-                          </td>
-                          <td className="py-3 px-4 text-right font-semibold text-gray-900">
-                            ₩{order.total_amount.toLocaleString()}
-                          </td>
-                          <td className="py-3 px-4 text-center">
-                            <OrderStatusBadge status={order.status} />
-                          </td>
-                          <td className="py-3 px-4 text-gray-600">
-                            {new Date(order.created_at).toLocaleString('ko-KR')}
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-
-                  {/* 주문이 없을 경우 */}
-                  {stats.recentOrders.length === 0 && (
-                    <div className="text-center py-8 text-gray-500">
-                      최근 주문이 없습니다.
-                    </div>
-                  )}
-                </div>
+                <DataTable
+                  columns={orderColumns}
+                  data={stats.recentOrders}
+                  emptyMessage="최근 주문이 없습니다."
+                />
               </div>
             </>
           ) : (

@@ -2,17 +2,17 @@
  * 재료관리 페이지
  * 
  * @description 재료 재고 관리 페이지
- * - AG-Grid를 사용한 재료 목록 표시
+ * - DataGrid를 사용한 재료 목록 표시
  * - 재료 추가/수정/삭제
  * - 재고 부족 알림
  */
 
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, useMemo } from 'react'
 import Head from 'next/head'
-import { AgGridReact } from 'ag-grid-react'
 
 import AdminHeader from '../../components/common/AdminHeader'
 import LoadingSpinner from '../../components/common/LoadingSpinner'
+import DataGrid from '../../components/grid/DataGrid'
 
 export default function IngredientsManagement() {
   const gridRef = useRef()
@@ -56,79 +56,6 @@ export default function IngredientsManagement() {
       alert('재료를 불러오는데 실패했습니다.')
     } finally {
       setLoading(false)
-    }
-  }
-
-  /**
-   * AG-Grid 컬럼 정의
-   */
-  const columnDefs = [
-    { 
-      field: 'id', 
-      headerName: 'ID', 
-      width: 80,
-      checkboxSelection: true,
-      headerCheckboxSelection: true
-    },
-    { field: 'name', headerName: '재료명', width: 150 },
-    { field: 'name_en', headerName: 'Name (EN)', width: 150 },
-    { field: 'unit', headerName: '단위', width: 80 },
-    { 
-      field: 'stock', 
-      headerName: '재고', 
-      width: 100,
-      cellStyle: params => {
-        if (params.data.stock <= params.data.min_stock) {
-          return { backgroundColor: '#fee', color: '#c00', fontWeight: 'bold' }
-        }
-        return null
-      }
-    },
-    { field: 'min_stock', headerName: '최소 재고', width: 110 },
-    { 
-      field: 'price_per_unit', 
-      headerName: '단가 (원)', 
-      width: 110,
-      valueFormatter: params => params.value?.toLocaleString()
-    },
-    { field: 'supplier', headerName: '공급처', width: 150 },
-    {
-      headerName: '작업',
-      width: 180,
-      cellRenderer: params => {
-        return `
-          <div class="flex gap-2">
-            <button 
-              class="edit-btn px-3 py-1 bg-blue-500 text-white rounded hover:bg-blue-600"
-              data-id="${params.data.id}"
-            >
-              수정
-            </button>
-            <button 
-              class="delete-btn px-3 py-1 bg-red-500 text-white rounded hover:bg-red-600"
-              data-id="${params.data.id}"
-            >
-              삭제
-            </button>
-          </div>
-        `
-      }
-    }
-  ]
-
-  /**
-   * 그리드 클릭 이벤트 핸들러
-   */
-  const onCellClicked = (event) => {
-    const target = event.event.target
-    
-    if (target.classList.contains('edit-btn')) {
-      const id = parseInt(target.dataset.id)
-      const ingredient = ingredients.find(i => i.id === id)
-      handleEdit(ingredient)
-    } else if (target.classList.contains('delete-btn')) {
-      const id = parseInt(target.dataset.id)
-      handleDelete(id)
     }
   }
 
@@ -222,6 +149,79 @@ export default function IngredientsManagement() {
   }
 
   /**
+   * AG-Grid 컬럼 정의
+   */
+  const columnDefs = useMemo(() => [
+    { 
+      field: 'id', 
+      headerName: 'ID', 
+      width: 80,
+      checkboxSelection: true,
+      headerCheckboxSelection: true
+    },
+    { field: 'name', headerName: '재료명', width: 150 },
+    { field: 'name_en', headerName: 'Name (EN)', width: 150 },
+    { field: 'unit', headerName: '단위', width: 80 },
+    { 
+      field: 'stock', 
+      headerName: '재고', 
+      width: 100,
+      cellStyle: params => {
+        if (params.data.stock <= params.data.min_stock) {
+          return { backgroundColor: '#fee', color: '#c00', fontWeight: 'bold' }
+        }
+        return null
+      }
+    },
+    { field: 'min_stock', headerName: '최소 재고', width: 110 },
+    { 
+      field: 'price_per_unit', 
+      headerName: '단가 (원)', 
+      width: 110,
+      valueFormatter: params => params.value?.toLocaleString()
+    },
+    { field: 'supplier', headerName: '공급처', width: 150 },
+    {
+      headerName: '작업',
+      width: 180,
+      cellRenderer: params => {
+        return `
+          <div class="flex gap-2">
+            <button 
+              class="edit-btn px-3 py-1 bg-blue-500 text-white rounded hover:bg-blue-600"
+              data-id="${params.data.id}"
+            >
+              수정
+            </button>
+            <button 
+              class="delete-btn px-3 py-1 bg-red-500 text-white rounded hover:bg-red-600"
+              data-id="${params.data.id}"
+            >
+              삭제
+            </button>
+          </div>
+        `
+      }
+    }
+  ], [])
+
+  /**
+   * 그리드 클릭 이벤트 핸들러
+   */
+  const onCellClicked = (event) => {
+    const target = event.event.target
+    
+    if (target.classList.contains('edit-btn')) {
+      const id = parseInt(target.dataset.id)
+      const ingredient = ingredients.find(i => i.id === id)
+      handleEdit(ingredient)
+    } else if (target.classList.contains('delete-btn')) {
+      const id = parseInt(target.dataset.id)
+      handleDelete(id)
+    }
+  }
+
+  /**
    * 재고 부족 재료 개수
    */
   const lowStockCount = ingredients.filter(i => i.stock <= i.min_stock).length
@@ -254,26 +254,19 @@ export default function IngredientsManagement() {
             </button>
           </div>
 
-          {/* AG-Grid */}
+          {/* DataGrid 사용 */}
           {loading ? (
             <LoadingSpinner size="lg" text="재료를 불러오는 중..." />
           ) : (
-            <div className="ag-theme-alpine" style={{ height: 600, width: '100%' }}>
-              <AgGridReact
-                ref={gridRef}
-                rowData={ingredients}
-                columnDefs={columnDefs}
-                defaultColDef={{
-                  sortable: true,
-                  filter: true,
-                  resizable: true
-                }}
-                rowSelection="multiple"
-                onCellClicked={onCellClicked}
-                pagination={true}
-                paginationPageSize={20}
-              />
-            </div>
+            <DataGrid
+              ref={gridRef}
+              rowData={ingredients}
+              columnDefs={columnDefs}
+              height={600}
+              pageSize={20}
+              rowSelection="multiple"
+              onCellClicked={onCellClicked}
+            />
           )}
         </main>
 

@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef, useMemo } from 'react'
 import Head from 'next/head'
 import AdminHeader from '../../components/common/AdminHeader'
-import { AgGridReact } from 'ag-grid-react'
+import DataGrid from '../../components/grid/DataGrid'
 import { ActionButtons } from '../../components/admin/GridActionButtons'
 
 export default function AdminProducts() {
@@ -96,6 +96,8 @@ export default function AdminProducts() {
   }
 
   const handleDelete = async (id) => {
+    if (!confirm('정말 삭제하시겠습니까?')) return
+    
     try {
       const response = await fetch(`/api/products/${id}`, {
         method: 'DELETE'
@@ -112,17 +114,16 @@ export default function AdminProducts() {
   }
 
   const columnDefs = useMemo(() => [
-    { field: 'id', headerName: 'ID', width: 80, sortable: true, filter: true },
-    { field: 'name', headerName: '상품명', width: 200, sortable: true, filter: true },
-    { field: 'category', headerName: '카테고리', width: 130, sortable: true, filter: true },
+    { field: 'id', headerName: 'ID', width: 80 },
+    { field: 'name', headerName: '상품명', width: 200 },
+    { field: 'category', headerName: '카테고리', width: 130 },
     { 
       field: 'price', 
       headerName: '가격', 
-      width: 120, 
-      sortable: true,
+      width: 120,
       valueFormatter: params => `₩${params.value.toLocaleString()}`
     },
-    { field: 'stock', headerName: '재고', width: 100, sortable: true },
+    { field: 'stock', headerName: '재고', width: 100 },
     {
       field: 'actions',
       headerName: '관리',
@@ -135,9 +136,13 @@ export default function AdminProducts() {
     }
   ], [])
 
-  const defaultColDef = useMemo(() => ({
-    resizable: true,
-  }), [])
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gray-100 flex items-center justify-center">
+        <div className="text-xl text-gray-600">로딩 중...</div>
+      </div>
+    )
+  }
 
   return (
     <>
@@ -175,17 +180,14 @@ export default function AdminProducts() {
               </button>
             </div>
 
-            <div className="ag-theme-alpine" style={{ height: 600, width: '100%' }}>
-              <AgGridReact
-                ref={gridRef}
-                rowData={products}
-                columnDefs={columnDefs}
-                defaultColDef={defaultColDef}
-                pagination={true}
-                paginationPageSize={20}
-                animateRows={true}
-              />
-            </div>
+            {/* DataGrid 컴포넌트 사용 */}
+            <DataGrid
+              ref={gridRef}
+              rowData={products}
+              columnDefs={columnDefs}
+              height={600}
+              pageSize={20}
+            />
           </div>
         </main>
 
