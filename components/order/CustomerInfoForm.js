@@ -1,21 +1,11 @@
 /**
  * CustomerInfoForm 컴포넌트
  * 
- * @description 고객 정보 검색 및 입력 폼
- * - 기존 고객 자동 완성
- * - 신규 고객 정보 입력
- * 
- * @param {Object} props
- * @param {string} props.customerName - 고객명
- * @param {Function} props.onCustomerNameChange - 고객명 변경 핸들러
- * @param {Function} props.onCustomerNameBlur - 고객명 blur 핸들러
- * @param {Object} props.customerInfo - 기존 고객 정보
- * @param {boolean} props.isNewCustomer - 신규 고객 여부
- * @param {Object} props.formData - 폼 데이터
- * @param {Function} props.onFormDataChange - 폼 데이터 변경 핸들러
+ * @description 고객 정보 입력 폼
  */
 
 import FormInput from '../form/FormInput'
+import CustomerInfoBadge from './CustomerInfoBadge'
 
 export default function CustomerInfoForm({
   customerName,
@@ -24,13 +14,12 @@ export default function CustomerInfoForm({
   customerInfo,
   isNewCustomer,
   formData,
-  onFormDataChange,
-  className = ''
+  onFormDataChange
 }) {
   return (
-    <div className={`p-4 bg-gray-50 rounded-lg ${className}`}>
+    <div className="mb-6 p-4 bg-gray-50 rounded-lg">
       <h3 className="font-semibold mb-4">고객 정보</h3>
-
+      
       {/* 고객명 입력 */}
       <FormInput
         label="고객명"
@@ -40,24 +29,15 @@ export default function CustomerInfoForm({
         onBlur={onCustomerNameBlur}
         placeholder="고객 이름을 입력하세요"
         required
+        className="mb-4"
       />
 
-      {/* 기존 고객 정보 표시 */}
-      {customerInfo && !isNewCustomer && (
-        <div className="mb-4 p-3 bg-green-50 border border-green-300 rounded">
-          <p className="text-sm font-semibold text-green-800">✅ 기존 고객 정보</p>
-          <p className="text-sm text-gray-700">전화번호: {customerInfo.phone || '없음'}</p>
-          <p className="text-sm text-gray-700">주소: {customerInfo.address || '없음'}</p>
-        </div>
-      )}
-
-      {/* 신규 고객 안내 */}
-      {isNewCustomer && customerName && (
-        <div className="mb-4 p-3 bg-yellow-50 border border-yellow-300 rounded">
-          <p className="text-sm font-semibold text-yellow-800">🆕 신규 고객</p>
-          <p className="text-sm text-gray-700">주문 완료 시 자동으로 고객 정보가 생성됩니다</p>
-        </div>
-      )}
+      {/* 기존/신규 고객 배지 */}
+      <CustomerInfoBadge
+        customerInfo={customerInfo}
+        isNewCustomer={isNewCustomer}
+        customerName={customerName}
+      />
 
       {/* 전화번호 */}
       <FormInput
@@ -68,6 +48,7 @@ export default function CustomerInfoForm({
         onChange={(value) => onFormDataChange({ ...formData, phone: value })}
         placeholder="010-XXXX-XXXX"
         required
+        className="mb-4"
       />
 
       {/* 주소 */}
@@ -77,6 +58,7 @@ export default function CustomerInfoForm({
         value={formData.shipping_address}
         onChange={(value) => onFormDataChange({ ...formData, shipping_address: value })}
         placeholder="시, 구, 동"
+        className="mb-4"
       />
 
       {/* 상세주소 */}

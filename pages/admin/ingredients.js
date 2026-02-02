@@ -1,29 +1,39 @@
 /**
  * 재료관리 페이지
  * 
- * @description 재료 재고 관리 페이지
- * - DataGrid를 사용한 재료 목록 표시
- * - 재료 추가/수정/삭제
- * - 재고 부족 알림
+ * @description 컴포넌트화된 재료 재고 관리 페이지
+ * - 재사용 가능한 컴포넌트 활용
+ * - 모듈화된 구조
  */
 
 import { useState, useEffect, useRef, useMemo } from 'react'
 import Head from 'next/head'
 
+// 공통 컴포넌트
 import AdminHeader from '../../components/common/AdminHeader'
 import LoadingSpinner from '../../components/common/LoadingSpinner'
+import PageHeader from '../../components/common/PageHeader'
+import Modal from '../../components/common/Modal'
+import Button from '../../components/common/Button'
+
+// 그리드 컴포넌트
 import DataGrid from '../../components/grid/DataGrid'
+
+// 재료 전용 컴포넌트
+import IngredientForm from '../../components/ingredient/IngredientForm'
+import StockAlert from '../../components/ingredient/StockAlert'
 
 export default function IngredientsManagement() {
   const gridRef = useRef()
   
+  // 상태 관리
   const [ingredients, setIngredients] = useState([])
   const [loading, setLoading] = useState(true)
   const [showModal, setShowModal] = useState(false)
   const [editingIngredient, setEditingIngredient] = useState(null)
   
-  // 폼 상태
-  const [formData, setFormData] = useState({
+  // 폼 초기값
+  const initialFormData = {
     name: '',
     name_en: '',
     name_ja: '',
@@ -33,7 +43,9 @@ export default function IngredientsManagement() {
     min_stock: 0,
     price_per_unit: 0,
     supplier: ''
-  })
+  }
+  
+  const [formData, setFormData] = useState(initialFormData)
 
   /**
    * 컴포넌트 마운트 시 재료 조회
@@ -64,17 +76,7 @@ export default function IngredientsManagement() {
    */
   const handleAddNew = () => {
     setEditingIngredient(null)
-    setFormData({
-      name: '',
-      name_en: '',
-      name_ja: '',
-      name_vi: '',
-      unit: '',
-      stock: 0,
-      min_stock: 0,
-      price_per_unit: 0,
-      supplier: ''
-    })
+    setFormData(initialFormData)
     setShowModal(true)
   }
 
@@ -146,6 +148,15 @@ export default function IngredientsManagement() {
       console.error('Error submitting ingredient:', error)
       alert('재료 저장에 실패했습니다.')
     }
+  }
+
+  /**
+   * 모달 닫기
+   */
+  const handleCloseModal = () => {
+    setShowModal(false)
+    setEditingIngredient(null)
+    setFormData(initialFormData)
   }
 
   /**
@@ -224,7 +235,10 @@ export default function IngredientsManagement() {
   /**
    * 재고 부족 재료 개수
    */
-  const lowStockCount = ingredients.filter(i => i.stock <= i.min_stock).length
+  const lowStockCount = useMemo(() => 
+    ingredients.filter(i => i.stock <= i.min_stock).length,
+    [ingredients]
+  )
 
   return (
     <>
@@ -236,25 +250,24 @@ export default function IngredientsManagement() {
         <AdminHeader />
 
         <main className="container mx-auto px-4 py-8">
-          {/* 헤더 */}
-          <div className="flex justify-between items-center mb-6">
-            <div>
-              <h1 className="text-3xl font-bold text-gray-800">재료관리</h1>
-              {lowStockCount > 0 && (
-                <p className="text-red-600 mt-2">
-                  ⚠️ 재고 부족 재료: {lowStockCount}개
-                </p>
-              )}
-            </div>
-            <button
-              onClick={handleAddNew}
-              className="px-6 py-3 bg-green-500 text-white rounded-lg hover:bg-green-600 transition"
-            >
-              ➕ 재료 추가
-            </button>
-          </div>
+          {/* 페이지 헤더 - PageHeader 컴포넌트 사용 */}
+          <PageHeader
+            title="재료관리"
+            actionButton={
+              <Button
+                onClick={handleAddNew}
+                variant="success"
+                size="md"
+              >
+                ➕ 재료 추가
+              </Button>
+            }
+          >
+            {/* 재고 부족 알림 - StockAlert 컴포넌트 사용 */}
+            <StockAlert count={lowStockCount} />
+          </PageHeader>
 
-          {/* DataGrid 사용 */}
+          {/* 데이터 그리드 */}
           {loading ? (
             <LoadingSpinner size="lg" text="재료를 불러오는 중..." />
           ) : (
@@ -270,159 +283,21 @@ export default function IngredientsManagement() {
           )}
         </main>
 
-        {/* 재료 추가/수정 모달 */}
-        {showModal && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-            <div className="bg-white rounded-lg p-8 max-w-2xl w-full max-h-[90vh] overflow-y-auto">
-              <h2 className="text-2xl font-bold mb-6">
-                {editingIngredient ? '재료 수정' : '재료 추가'}
-              </h2>
-
-              <form onSubmit={handleSubmit}>
-                <div className="grid grid-cols-2 gap-4">
-                  {/* 재료명 (한국어) */}
-                  <div className="col-span-2">
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      재료명 (한국어) *
-                    </label>
-                    <input
-                      type="text"
-                      required
-                      value={formData.name}
-                      onChange={e => setFormData({...formData, name: e.target.value})}
-                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-                    />
-                  </div>
-
-                  {/* 재료명 (영어) */}
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Name (English)
-                    </label>
-                    <input
-                      type="text"
-                      value={formData.name_en}
-                      onChange={e => setFormData({...formData, name_en: e.target.value})}
-                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-                    />
-                  </div>
-
-                  {/* 재료명 (일본어) */}
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      名前 (日本語)
-                    </label>
-                    <input
-                      type="text"
-                      value={formData.name_ja}
-                      onChange={e => setFormData({...formData, name_ja: e.target.value})}
-                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-                    />
-                  </div>
-
-                  {/* 재료명 (베트남어) */}
-                  <div className="col-span-2">
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Tên (Tiếng Việt)
-                    </label>
-                    <input
-                      type="text"
-                      value={formData.name_vi}
-                      onChange={e => setFormData({...formData, name_vi: e.target.value})}
-                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-                    />
-                  </div>
-
-                  {/* 단위 */}
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      단위 *
-                    </label>
-                    <input
-                      type="text"
-                      required
-                      placeholder="g, ml, 개 등"
-                      value={formData.unit}
-                      onChange={e => setFormData({...formData, unit: e.target.value})}
-                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-                    />
-                  </div>
-
-                  {/* 재고 */}
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      현재 재고 *
-                    </label>
-                    <input
-                      type="number"
-                      required
-                      value={formData.stock}
-                      onChange={e => setFormData({...formData, stock: e.target.value})}
-                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-                    />
-                  </div>
-
-                  {/* 최소 재고 */}
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      최소 재고 *
-                    </label>
-                    <input
-                      type="number"
-                      required
-                      value={formData.min_stock}
-                      onChange={e => setFormData({...formData, min_stock: e.target.value})}
-                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-                    />
-                  </div>
-
-                  {/* 단가 */}
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      단가 (원)
-                    </label>
-                    <input
-                      type="number"
-                      value={formData.price_per_unit}
-                      onChange={e => setFormData({...formData, price_per_unit: e.target.value})}
-                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-                    />
-                  </div>
-
-                  {/* 공급처 */}
-                  <div className="col-span-2">
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      공급처
-                    </label>
-                    <input
-                      type="text"
-                      value={formData.supplier}
-                      onChange={e => setFormData({...formData, supplier: e.target.value})}
-                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-                    />
-                  </div>
-                </div>
-
-                {/* 버튼 */}
-                <div className="flex gap-4 mt-6">
-                  <button
-                    type="button"
-                    onClick={() => setShowModal(false)}
-                    className="flex-1 px-6 py-3 border border-gray-300 rounded-lg hover:bg-gray-50 transition"
-                  >
-                    취소
-                  </button>
-                  <button
-                    type="submit"
-                    className="flex-1 px-6 py-3 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition"
-                  >
-                    {editingIngredient ? '수정' : '추가'}
-                  </button>
-                </div>
-              </form>
-            </div>
-          </div>
-        )}
+        {/* 재료 추가/수정 모달 - Modal 컴포넌트 사용 */}
+        <Modal
+          isOpen={showModal}
+          onClose={handleCloseModal}
+          title={editingIngredient ? '재료 수정' : '재료 추가'}
+        >
+          {/* 재료 폼 - IngredientForm 컴포넌트 사용 */}
+          <IngredientForm
+            formData={formData}
+            onChange={setFormData}
+            onSubmit={handleSubmit}
+            onCancel={handleCloseModal}
+            isEditing={!!editingIngredient}
+          />
+        </Modal>
       </div>
     </>
   )
