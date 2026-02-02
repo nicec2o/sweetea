@@ -8,30 +8,18 @@
  */
 
 import { useState, useEffect } from 'react'
-import Head from 'next/head'
-
-// 컴포넌트 임포트
-import AdminHeader from '../../components/common/AdminHeader'
-import LoadingSpinner from '../../components/common/LoadingSpinner'
-import StatCard from '../../components/admin/StatCard'
+import AdminLayout from '../../components/layout/AdminLayout'
+import { LoadingSpinner, DataTable, StatsGrid } from '../../components/ui'
 import OrderStatusBadge from '../../components/admin/OrderStatusBadge'
-import DataTable from '../../components/grid/DataTable'
 
 export default function AdminDashboard() {
-  // 상태 관리
-  const [stats, setStats] = useState(null) // 통계 데이터
-  const [loading, setLoading] = useState(true) // 로딩 상태
+  const [stats, setStats] = useState(null)
+  const [loading, setLoading] = useState(true)
 
-  /**
-   * 컴포넌트 마운트 시 대시보드 데이터 조회
-   */
   useEffect(() => {
     fetchDashboardData()
   }, [])
 
-  /**
-   * API에서 대시보드 통계 데이터 조회
-   */
   const fetchDashboardData = async () => {
     try {
       const response = await fetch('/api/admin/dashboard')
@@ -45,9 +33,6 @@ export default function AdminDashboard() {
     }
   }
 
-  /**
-   * DataTable 컬럼 정의
-   */
   const orderColumns = [
     {
       key: 'id',
@@ -86,79 +71,60 @@ export default function AdminDashboard() {
     }
   ]
 
+  const dashboardStats = stats ? [
+    {
+      title: '총 상품',
+      value: stats.totalProducts,
+      icon: '📦',
+      iconBg: 'bg-blue-500'
+    },
+    {
+      title: '총 주문',
+      value: stats.totalOrders,
+      icon: '🛒',
+      iconBg: 'bg-green-500'
+    },
+    {
+      title: '총 회원',
+      value: stats.totalUsers,
+      icon: '👥',
+      iconBg: 'bg-purple-500'
+    },
+    {
+      title: '총 매출',
+      value: `₩${stats.totalRevenue.toLocaleString()}`,
+      icon: '💰',
+      iconBg: 'bg-yellow-500'
+    }
+  ] : []
+
   return (
-    <>
-      <Head>
-        <title>관리자 대시보드 - SweeTea</title>
-      </Head>
+    <AdminLayout title="관리자 대시보드 - SweeTea">
+      {loading ? (
+        <LoadingSpinner size="lg" message="데이터를 불러오는 중..." />
+      ) : stats ? (
+        <>
+          <StatsGrid stats={dashboardStats} columns={4} className="mb-8" />
 
-      <div className="min-h-screen bg-gray-100">
-        {/* 헤더 */}
-        <AdminHeader currentPage="dashboard" />
-
-        {/* 메인 컨텐츠 */}
-        <main className="container mx-auto px-4 py-8">
-          {loading ? (
-            <LoadingSpinner size="lg" text="데이터를 불러오는 중..." />
-          ) : stats ? (
-            <>
-              {/* 통계 카드 그리드 */}
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-                {/* 총 상품 수 */}
-                <StatCard
-                  title="총 상품"
-                  value={stats.totalProducts}
-                  icon="📦"
-                  bgColor="bg-blue-100"
-                />
-
-                {/* 총 주문 수 */}
-                <StatCard
-                  title="총 주문"
-                  value={stats.totalOrders}
-                  icon="🛒"
-                  bgColor="bg-green-100"
-                />
-
-                {/* 총 회원 수 */}
-                <StatCard
-                  title="총 회원"
-                  value={stats.totalUsers}
-                  icon="👥"
-                  bgColor="bg-purple-100"
-                />
-
-                {/* 총 매출 */}
-                <StatCard
-                  title="총 매출"
-                  value={`₩${stats.totalRevenue.toLocaleString()}`}
-                  icon="💰"
-                  bgColor="bg-yellow-100"
-                />
-              </div>
-
-              {/* 최근 주문 목록 - DataTable 사용 */}
-              <div className="bg-white rounded-lg shadow-md p-6">
-                <h2 className="text-xl font-bold text-gray-800 mb-4">
-                  최근 주문
-                </h2>
-                
-                <DataTable
-                  columns={orderColumns}
-                  data={stats.recentOrders}
-                  emptyMessage="최근 주문이 없습니다."
-                />
-              </div>
-            </>
-          ) : (
-            <div className="text-center py-12">
-              <p className="text-xl text-gray-500">
-                데이터를 불러올 수 없습니다.
-              </p>
-            </div>
-          )}
-        </main>
-      </div>
-    </>
+          <div className="bg-white rounded-lg shadow-md p-6">
+            <h2 className="text-xl font-bold text-gray-800 mb-4">
+              최근 주문
+            </h2>
+            
+            <DataTable
+              columns={orderColumns}
+              data={stats.recentOrders}
+              emptyMessage="최근 주문이 없습니다."
+            />
+          </div>
+        </>
+      ) : (
+        <div className="text-center py-12">
+          <p className="text-xl text-gray-500">
+            데이터를 불러올 수 없습니다.
+          </p>
+        </div>
+      )}
+    </AdminLayout>
   )
 }

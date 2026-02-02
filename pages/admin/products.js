@@ -5,9 +5,8 @@
  */
 
 import { useState, useEffect, useRef, useMemo } from 'react'
-import Head from 'next/head'
-import AdminHeader from '../../components/common/AdminHeader'
-import DataGrid from '../../components/grid/DataGrid'
+import AdminLayout from '../../components/layout/AdminLayout'
+import { DataGrid, PageHeader, LoadingSpinner } from '../../components/ui'
 import ProductFormModal from '../../components/admin/ProductFormModal'
 import { ActionButtons } from '../../components/admin/GridActionButtons'
 import { useModal } from '../../hooks/useModal'
@@ -114,54 +113,47 @@ export default function AdminProducts() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-100 flex items-center justify-center">
-        <div className="text-xl text-gray-600">로딩 중...</div>
-      </div>
+      <AdminLayout title="상품관리 - SweeTea Admin">
+        <LoadingSpinner message="로딩 중..." />
+      </AdminLayout>
     )
   }
 
   return (
-    <>
-      <Head>
-        <title>상품관리 - SweeTea Admin</title>
-      </Head>
+    <AdminLayout title="상품관리 - SweeTea Admin">
+      <div className="bg-white rounded-lg shadow-md p-6">
+        <PageHeader
+          title="상품 목록"
+          onRefresh={fetchProducts}
+        >
+          <button
+            onClick={handleAddNew}
+            className="px-6 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600"
+          >
+            + 상품 추가
+          </button>
+        </PageHeader>
 
-      <div className="min-h-screen bg-gray-100">
-        <AdminHeader currentPage="products" />
-
-        <main className="container mx-auto px-4 py-8">
-          <div className="bg-white rounded-lg shadow-md p-6">
-            <div className="flex justify-between items-center mb-6">
-              <h2 className="text-xl font-bold text-gray-800">상품 목록</h2>
-              <button
-                onClick={handleAddNew}
-                className="px-6 py-2 bg-primary-500 text-white rounded-lg hover:bg-primary-600"
-              >
-                + 상품 추가
-              </button>
-            </div>
-
-            <DataGrid
-              ref={gridRef}
-              rowData={products}
-              columnDefs={columnDefs}
-              height={600}
-              pageSize={20}
-            />
-          </div>
-        </main>
-
-        {/* 상품 추가/수정 모달 */}
-        <ProductFormModal
-          isOpen={isOpen}
-          onClose={() => {
-            close()
-            setEditingProduct(null)
-          }}
-          onSubmit={handleSubmit}
-          initialData={editingProduct}
-        />
+        <div className="mt-6">
+          <DataGrid
+            ref={gridRef}
+            rowData={products}
+            columnDefs={columnDefs}
+            height={600}
+            pageSize={20}
+          />
+        </div>
       </div>
-    </>
+
+      <ProductFormModal
+        isOpen={isOpen}
+        onClose={() => {
+          close()
+          setEditingProduct(null)
+        }}
+        onSubmit={handleSubmit}
+        initialData={editingProduct}
+      />
+    </AdminLayout>
   )
 }

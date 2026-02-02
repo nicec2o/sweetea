@@ -7,16 +7,14 @@
  * 
  * @param {Object} props
  * @param {string} props.title - 페이지 타이틀
- * @param {string} props.currentPage - 현재 페이지 (dashboard, products, orders 등)
  * @param {ReactNode} props.children - 페이지 내용
  */
 
 import Head from 'next/head'
-import AdminHeader from '../common/AdminHeader'
+import AdminHeader from './AdminHeader'
 
 export default function AdminLayout({
   title = 'SweeTea Admin',
-  currentPage,
   children,
   className = ''
 }) {
@@ -28,7 +26,7 @@ export default function AdminLayout({
 
       <div className={`min-h-screen bg-gray-100 ${className}`}>
         {/* 관리자 헤더 */}
-        <AdminHeader currentPage={currentPage} />
+        <AdminHeader />
 
         {/* 메인 컨텐츠 */}
         <main className="container mx-auto px-4 py-8">
